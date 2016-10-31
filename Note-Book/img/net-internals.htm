@@ -1,0 +1,1456 @@
+<!DOCTYPE html>
+<!-- saved from url=(0027)chrome://net-internals/#dns -->
+<html i18n-processed=""><!--
+Copyright (c) 2012 The Chromium Authors. All rights reserved.
+Use of this source code is governed by a BSD-style license that can be
+found in the LICENSE file.
+--><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    
+    <!-- Don't use automatic scaling on mobile -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0,
+                                   maximum-scale=1.0, user-scalable=no">
+    <link rel="stylesheet" href="chrome://resources/css/text_defaults.css">
+    <style>/* Copyright (c) 2012 The Chromium Authors. All rights reserved.
+ * Use of this source code is governed by a BSD-style license that can be
+ * found in the LICENSE file.
+ */
+
+/* Only common styles should be declared here. */
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  overflow: hidden;  /* Prevents scroll bar flickering on resize. */
+}
+
+ul {
+  padding-left: 2em;
+}
+
+/**
+ * This class is used to create the splitter widget in
+ * ResizbleVerticalSplitView.
+ */
+.vertical-splitter {
+  -webkit-user-select: none;
+  border-left: 1px solid #afafaf;
+  cursor: ew-resize;
+  position: absolute;
+  width: 10px;
+}
+
+/* Needs to be wider on touch devices. */
+.touch .vertical-splitter {
+  width: 5mm;
+}
+
+.log-source-entry {
+  margin: 5px;
+}
+
+pre {
+  font-size: 133%;
+}
+
+/**
+ * This class should be given to top-level content boxes (like the view's main
+ * DIV). It gives them a consistent padding, and makes them scrollable.
+ */
+.content-box {
+  overflow: auto;
+  padding: 20px 10px 10px 20px;
+}
+
+.deindent-header,
+.content-box h1,
+.content-box h2,
+.content-box h3,
+.content-box h4,
+.content-box h5,
+.content-box h6 {
+  margin-left: -10px;
+}
+
+/**
+ * Styles for TABLE that uses a thin collapsed border.
+ */
+table.styled-table {
+  border-collapse: collapse;
+}
+
+table.styled-table,
+.styled-table th,
+.styled-table td {
+  border: 1px solid #777;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+#tab-list {
+  border-right: 1px solid rgb(170,170,170);
+  display: inline-block;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 0;
+}
+
+#tab-list a {
+  display: inline-block;
+  font-size: 16px;
+  margin: 0;
+  padding: 2px 10px;
+  text-decoration: none;
+  white-space: nowrap;
+  width: 100%;
+}
+
+#tab-list a,
+#tab-list a:visited {
+  color: rgb(140,140,140);
+}
+
+#tab-list .selected,
+#tab-list a:hover {
+  color: black;
+}
+
+.styled-table th {
+  background: rgb(224,236,255);
+}
+
+.styled-table th.title {
+  background: rgb(255,217,217);
+}
+
+/**
+ * Styling for event logs.
+ */
+.event-log p {
+  white-space: nowrap;
+}
+
+.event-log h4 {
+  margin: 0;
+}
+
+.event-log a {
+  font-weight: bold;
+  text-decoration: none;
+}
+
+/**
+ * Styling for text indicating a potential problem or error state.
+ */
+.warning-text {
+  color: rgb(238, 0, 0);
+}
+
+/**
+ * Styling for help windows that appear when mousing over an element.
+ */
+.mouse-over-help {
+  background: #EEE;
+  border: 1px solid black;
+  padding: 5px;
+  z-index: 1;
+}
+
+/**
+ * Styling for elements that show a help window on mouse over.
+ */
+.mouse-over-help-hover {
+  color: blue;
+  cursor: help;
+}
+</style>
+    <style>/* Copyright (c) 2012 The Chromium Authors. All rights reserved.
+ * Use of this source code is governed by a BSD-style license that can be
+ * found in the LICENSE file.
+ */
+
+.capture-status-view {
+  background: rgb(238, 0, 0);
+  font-size: 133%;
+}
+
+.halted-status-view {
+  background: rgb(0, 138, 0);
+}
+
+.loaded-status-view {
+  background: rgb(113, 113, 171);
+}
+
+#capture-status-view {
+  -webkit-align-items: center;
+  display: -webkit-flex;
+}
+
+.capture-status-view-link,
+.capture-status-view-link:visited,
+.capture-status-view-link:active {
+  color: white;
+  text-decoration: none;
+}
+
+.capture-status-view-link:hover {
+  color: white;
+  text-decoration: underline;
+}
+
+/* Completely un-style the SELECT. Will place an arrow over it manually. */
+#capture-status-view-actions {
+  -webkit-appearance: none;
+  background: none;
+  border: none;
+  height: 25px;
+  outline: none;
+  width: 30px;
+}
+
+.capture-status-view-arrow {
+  display: inline-block;
+  position: relative;
+}
+
+.capture-status-view-arrow::after {
+  color: black;
+  content: '\25bc';
+  font-size: 9px;
+  left: 0;
+  line-height: 25px;
+  pointer-events: none;
+  position: absolute;
+  text-align: center;
+  top: 0;
+  width: 100%;
+}
+</style>
+    <style>/* Copyright (c) 2012 The Chromium Authors. All rights reserved.
+ * Use of this source code is governed by a BSD-style license that can be
+ * found in the LICENSE file.
+ */
+
+#events-view-filter-box {
+  background: #efefef;
+  border-bottom: 1px solid #aaa;
+  overflow: hidden;
+  padding: 5px;
+  white-space: nowrap;
+}
+
+#events-view-filter-box input {
+  width: 100%;
+}
+
+#events-view-action-box {
+  background: #efefef;
+  border-top: 1px solid gray;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+#events-view-source-list {
+  overflow-x: hidden;
+  overflow-y: auto
+}
+
+#events-view-source-list-table {
+  cursor: pointer;
+}
+
+#events-view-source-list-table thead td {
+  background: rgb(229, 236, 249);
+  font-weight: bold;
+  text-align: left;
+}
+
+#events-view-source-list-table td {
+  border-bottom: 1px solid #afafaf;
+  border-left: 1px solid #afafaf;
+  padding: 3px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#events-view-source-list-tbody .mouseover {
+  background: rgb(244,244,255);
+}
+
+#events-view-source-list-tbody .selected {
+  background: rgb(195, 217, 255);
+}
+
+#events-view-source-list-tbody .error {
+  background: rgb(255, 245, 245);
+}
+
+#events-view-source-list-tbody .inactive {
+  background: rgb(245, 255, 245);
+}
+
+#events-view-source-list-tbody .source-connect-job {
+  color: blue;
+}
+
+#events-view-source-list-tbody .source-host-resolver-impl-job,
+#events-view-source-list-tbody .source-host-resolver-impl-request {
+  color: rgb(32, 96, 96);
+}
+
+#events-view-source-list-tbody .source-disk-cache-entry,
+#events-view-source-list-tbody .source-memory-cache-entry {
+  color: #707070;
+}
+
+#events-view-source-list-tbody .source-socket {
+  color: purple;
+}
+
+#events-view-source-list-tbody .source-udp-socket {
+  color: rgb(128, 48, 48);
+}
+
+#events-view-source-list-tbody .source-proxy-script-decider {
+  color: green;
+}
+
+#events-view-source-list-tbody .source-download {
+  color: rgb(112, 112, 0);
+}
+
+#events-view-source-list-tbody .source-filestream {
+  color: rgb(112, 0, 112);
+}
+
+#events-view-source-list-tbody .source-ipv6-probe-job {
+  color: rgb(235, 0, 0);
+}
+
+#events-view-source-list-tbody .source-none {
+  color: rgb(235, 0, 0);
+}
+</style>
+    <style>/* Copyright (c) 2012 The Chromium Authors. All rights reserved.
+ * Use of this source code is governed by a BSD-style license that can be
+ * found in the LICENSE file.
+ */
+
+#timeline-view-selection-div {
+  display: inline-block;
+  overflow-y: auto;
+}
+
+#timeline-view-selection-toggle {
+  background-color: #fff;
+  background-image: url(chrome://resources/images/select.png);
+  border: none;
+  height: 8px;
+  padding: none;
+  width: 19px;
+}
+
+.timeline-view-rotateleft {
+  -webkit-transform: rotate(90deg);
+}
+
+.timeline-view-rotateright {
+  -webkit-transform: rotate(270deg);
+}
+
+#timeline-view-selection-div ul {
+  margin-top: 0;
+  padding-left: 10px;
+}
+
+#timeline-view-selection-div li {
+  list-style: none;
+  white-space: nowrap;
+}
+
+.timeline-view-text {
+  color: black;
+}
+
+#timeline-view-open-sockets {
+  color: rgb(170, 0, 170);
+}
+
+#timeline-view-in-use-sockets {
+  color: rgb(255, 51, 204);
+}
+
+#timeline-view-url-requests {
+  color: black;
+}
+
+#timeline-view-dns-jobs {
+  color: rgb(150, 20, 29);
+}
+
+#timeline-view-bytes-received {
+  color: rgb(0, 187, 0);
+}
+
+#timeline-view-bytes-sent {
+  color: red;
+}
+
+#timeline-view-disk-cache-bytes-read {
+  color: rgb(0, 0, 255);
+}
+
+#timeline-view-disk-cache-bytes-written {
+  color: #999;
+}
+
+/* Need the id in this rule to override the above color rules. */
+#timeline-view-selection-div .timeline-view-hidden {
+  color: white;
+}
+
+#timeline-view-graph-div {
+  background-color: white;
+}
+
+#timeline-view-graph-canvas {
+  cursor: pointer;
+  padding: 10px 10px 2px;
+}
+
+#timeline-view-scrollbar-div {
+  overflow-x: scroll;
+  overflow-y: hidden;
+}
+
+#timeline-view-scrollbar-inner-div {
+  height: 1px;
+}
+</style>
+    <style>/* Copyright (c) 2012 The Chromium Authors. All rights reserved.
+ * Use of this source code is governed by a BSD-style license that can be
+ * found in the LICENSE file.
+ */
+
+#chromeos-view-password-div,
+#chromeos-view-parse-status {
+  margin-top: 20px;
+}
+</style>
+    <script src="chrome://resources/js/util.js"></script>
+    <script src="chrome://resources/js/cr.js"></script>
+    <script src="chrome://resources/js/load_time_data.js"></script>
+    <script src="chrome://net-internals/index.js"></script>
+    <script src="chrome://net-internals/strings.js"></script>
+  </head>
+  <body id="import-view-drop-target">
+    <!--
+Copyright (c) 2013 The Chromium Authors. All rights reserved.
+Use of this source code is governed by a BSD-style license that can be
+found in the LICENSE file.
+-->
+
+<!-- Status bar at top of screen -->
+
+<style>
+
+#top-bar-view {
+  -webkit-align-items: center;
+  border-bottom: 1px solid gray;
+  color: #fff;
+  display: -webkit-flex;
+  padding: 2px 2px 4px 7px;
+}
+</style>
+
+<div id="top-bar-view" class="capture-status-view" style="position: absolute; left: 0px; top: 0px; width: 1360px; height: 32px;">
+  <div style="-webkit-flex-grow: 1">
+    <!--
+Copyright (c) 2012 The Chromium Authors. All rights reserved.
+Use of this source code is governed by a BSD-style license that can be
+found in the LICENSE file.
+-->
+
+<!-- Status bar at top of screen when in capture mode. -->
+<div id="capture-status-view">
+  <span style="-webkit-flex-grow: 1">
+    <a href="chrome://net-internals/#capture" class="capture-status-view-link">capturing</a>
+    <a href="chrome://net-internals/#events" class="capture-status-view-link">events
+    (<span id="capture-status-view-captured-events-count" title="Number of events captured to this window">200</span>)</a>
+  </span>
+  <span class="capture-status-view-arrow">
+    <select id="capture-status-view-actions" aria-label="Capture Actions">
+      <optgroup label="Capture">
+        <option value="stop">Stop</option>
+        <option value="reset">Reset</option>
+      </optgroup>
+      <optgroup label="Tools">
+        <option value="clear-cache">Clear cache</option>
+        <option value="flush-sockets">Flush sockets</option>
+      </optgroup>
+      <option value="switch-time-format">Switch time format</option>
+    </select>
+  </span>
+</div>
+
+<!-- Status bar at top of screen when capturing is stopped -->
+<div id="halted-status-view" style="display:none">
+  Capturing halted
+</div>
+
+<!-- Status bar at top of screen when displaying a loaded dump file -->
+<div id="loaded-status-view" style="display:none">
+  Displaying log file (<span id="loaded-status-view-dump-file-name"></span>)
+</div>
+
+  </div>
+</div>
+
+
+    <div id="tab-list" style="position: absolute; left: 0px; top: 32px; width: 100px; height: 700px;">
+    <a href="chrome://net-internals/#capture">Capture</a><br><a href="chrome://net-internals/#export">Export</a><br><a href="chrome://net-internals/#import">Import</a><br><a href="chrome://net-internals/#proxy">Proxy</a><br><a href="chrome://net-internals/#events">Events</a><br><a href="chrome://net-internals/#timeline">Timeline</a><br><a href="chrome://net-internals/#dns" class="selected">DNS</a><br><a href="chrome://net-internals/#sockets">Sockets</a><br><a href="chrome://net-internals/#alt-svc">Alt-Svc</a><br><a href="chrome://net-internals/#http2">HTTP/2</a><br><a href="chrome://net-internals/#quic">QUIC</a><br><a href="chrome://net-internals/#sdch">SDCH</a><br><a href="chrome://net-internals/#httpCache">Cache</a><br><a href="chrome://net-internals/#modules">Modules</a><br><a href="chrome://net-internals/#hsts">HSTS</a><br><a href="chrome://net-internals/#bandwidth">Bandwidth</a><br><a href="chrome://net-internals/#prerender">Prerender</a><br><a href="chrome://net-internals/#chromeos" style="display: none;">ChromeOS</a><br></div>
+
+    <div id="main-tab-contents">
+      <!-- Proxy info -->
+
+<style>
+
+#proxy-view-tab-content td,
+#proxy-view-tab-content th {
+  font-size: 85%;
+}
+
+#proxy-view-socks-hints {
+  border: 1px solid orange;
+  padding: 1ex;
+}
+
+#proxy-view-socks-hints-flag {
+  margin: 1ex;
+}
+
+</style>
+
+<div id="proxy-view-tab-content" class="content-box" style="display: none; position: absolute; left: 100px; top: 32px; width: 1260px; height: 700px;">
+ <input type="button" value="Re-apply settings" id="proxy-view-reload-settings" class="hide-when-not-capturing">
+
+  <div id="proxy-view-effective-content">
+    <h4>Effective proxy settings</h4>
+    <pre id="proxy-view-effective-settings"></pre>
+  </div>
+
+  <div id="proxy-view-original-content">
+    <h4>Original proxy settings</h4>
+    <pre id="proxy-view-original-settings"></pre>
+  </div>
+
+  <div id="proxy-view-socks-hints">
+    Note that some traffic such as DNS prefetching will NOT go through the proxy
+    server. To prevent the browser from doing local DNS resolves try adding this
+    command line flag:
+    <pre id="proxy-view-socks-hints-flag"></pre>
+  </div>
+
+  <div id="proxy-view-bad-proxies-div" style="display: none">
+    <h4>
+      Recently failed proxies, marked as bad
+      <input type="button" value="Clear bad proxies" id="proxy-view-clear-bad-proxies" class="hide-when-not-capturing">
+    </h4>
+    <table class="styled-table">
+      <thead>
+        <tr>
+          <th>Bad proxy server</th>
+          <th>Time for next retry</th>
+        </tr>
+      </thead>
+      <tbody id="proxy-view-bad-proxies-tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+      <!-- Host resolver info -->
+<div id="dns-view-tab-content" class="content-box" style="position: absolute; left: 100px; top: 32px; width: 1260px; height: 700px;">
+  <ul style="margin-top: 0">
+    <li><a href="chrome://net-internals/#events&amp;q=type:HOST_RESOLVER_IMPL_JOB%20is:active">View pending lookups</a></li>
+  </ul>
+
+  <div>
+    <h4>Async DNS Configuration</h4>
+    <ul>
+      <li>Internal DNS client enabled:
+        <span id="dns-view-internal-dns-enabled">true</span>
+        <span id="dns-view-internal-dns-invalid-config" class="warning-text" style="display: none;">
+          (No valid configuration found)</span>
+      </li>
+    </ul>
+    <table class="styled-table">
+      <tbody id="dns-view-internal-dns-config-tbody"><tr><th>nameservers</th><td><div>10.20.0.4:53</div><div>10.65.0.1:53</div><div>10.20.0.98:53</div></td></tr><tr><th>append_to_multi_label_name</th><td>true</td></tr><tr><th>attempts</th><td>2</td></tr><tr><th>edns0</th><td>false</td></tr><tr><th>ndots</th><td>1</td></tr><tr><th>num_hosts</th><td>804</td></tr><tr><th>rotate</th><td>false</td></tr><tr><th>search</th><td><div>hz.ali.com</div></td></tr><tr><th>timeout</th><td>1</td></tr><tr><th>unhandled_options</th><td>false</td></tr><tr><th>use_local_ipv6</th><td>false</td></tr></tbody>
+    </table>
+  </div>
+
+  <h4>
+    Host resolver cache
+    <input type="button" value="Clear host cache" id="dns-view-clear-cache" class="hide-when-not-capturing">
+  </h4>
+  <ul>
+    <li>Capacity: <span id="dns-view-cache-capacity">1000</span></li>
+  </ul>
+  <h4>Current State</h4>
+  <ul>
+    <li>Active entries: <span id="dns-view-cache-active">0</span></li>
+    <li>Expired entries: <span id="dns-view-cache-expired">0</span></li>
+  </ul>
+
+  <table class="styled-table">
+    <thead>
+      <tr>
+        <th>Hostname</th>
+        <th>Family</th>
+        <th>Addresses</th>
+        <th>Expires</th>
+      </tr>
+    </thead>
+    <tbody id="dns-view-cache-tbody"></tbody>
+  </table>
+</div>
+
+      <style>
+#sockets-view-close-idle-button,
+#sockets-view-flush-button {
+  margin-bottom: 2px;
+}
+</style>
+
+<div id="sockets-view-tab-content" class="content-box" style="display: none; position: absolute; left: 100px; top: 32px; width: 1260px; height: 700px;">
+  <ul style="margin-top:0">
+    <li class="hide-when-not-capturing">
+      <input type="button" value="Close idle sockets" id="sockets-view-close-idle-button">
+    </li>
+    <li class="hide-when-not-capturing">
+      <input type="button" value="Flush socket pools" id="sockets-view-flush-button">
+      <span class="warning-text">May break pages with active connections</span>
+    </li>
+    <li><a href="chrome://net-internals/#events&amp;q=type:SOCKET%20is:active">View live sockets</a>
+    </li>
+  </ul>
+  <p>
+    </p><div id="sockets-view-pool-div">
+    </div>
+  <p></p>
+  <p>
+    </p><div id="sockets-view-pool-groups-div">
+    </div>
+  <p></p>
+</div>
+
+      <div id="alt-svc-view-tab-content" class="content-box" style="display: none; position: absolute; left: 100px; top: 32px; width: 1260px; height: 700px;">
+  <h4>Alternate Service Mappings</h4>
+  <div id="alt-svc-view-alternate-protocol-mappings">
+    <div jsdisplay="altSvcMappings.length == 0">None</div>
+    <div jsdisplay="altSvcMappings.length != 0">
+      <table class="styled-table">
+        <thead>
+          <tr>
+            <th>Server</th>
+            <th>Alternative Service</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr jsselect="altSvcMappings">
+            <td jscontent="server"></td>
+            <td jscontent="alternative_service"></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+      <div id="spdy-view-tab-content" class="content-box" style="display: none; position: absolute; left: 100px; top: 32px; width: 1260px; height: 700px;">
+  <ul id="spdy-view-status" style="margin-top:0">
+    <!-- "enable_http2" and "enable_spdy31" are used since release 50, see
+         https://crrev.com/1651123002.  "spdy_enabled" is here to support
+         importing netlog json files from earlier browsers.
+         TODO(bnc): Deprecate around 2016 July. -->
+    <li>HTTP/2 Enabled: <span jscontent="$this.enable_http2 == undefined ? $this.spdy_enabled : $this.enable_http2"></span></li>
+    <li>SPDY/3.1 Enabled: <span jscontent="$this.enable_spdy31 == undefined ? $this.spdy_enabled : $this.enable_spdy31"></span></li>
+    <!-- "use_alternative_service" is used here since release 46, see
+         https://crrev.com/1268313004.  "use_alternate_protocols" is here to
+         support importing netlog json files from earlier browsers.
+         TODO(bnc): Deprecate around 2016 February. -->
+    <li>Use Alternative Service: <span jscontent="$this.use_alternative_services == undefined ? $this.use_alternate_protocols : $this.use_alternative_services"></span></li>
+    <!-- "alpn_protos" and "npn_protos" are used here since release 48, see
+         https://crrev.com/1387363004.  "next_protos" is here to support
+         importing netlog json files from earlier browsers.
+         TODO(bnc): Deprecate around 2016 April. -->
+    <li>ALPN Protocols: <span jscontent="$this.alpn_protos || $this.next_protos"></span></li>
+    <li>NPN Protocols: <span jscontent="$this.npn_protos || $this.next_protos"></span></li>
+  </ul>
+
+  <h4>HTTP/2 sessions</h4>
+  <div id="spdy-view-session-info">
+    <!-- Only one of these two are shown -->
+    <div jsdisplay="spdySessionInfo.length == 0">None</div>
+    <div jsdisplay="spdySessionInfo.length != 0">
+      <a href="chrome://net-internals/#events&amp;q=type:HTTP2_SESSION%20is:active">View live HTTP/2 sessions</a>
+      <p>
+        </p><table class="styled-table">
+          <thead>
+            <tr>
+              <th>Host</th>
+              <th>Proxy</th>
+              <th>ID</th>
+              <th>Protocol Negotiated</th>
+              <th>Active streams</th>
+              <th>Unclaimed pushed</th>
+              <th>Max</th>
+              <th>Initiated</th>
+              <th>Pushed</th>
+              <th>Pushed and claimed</th>
+              <th>Abandoned</th>
+              <th>Received frames</th>
+              <th>Secure</th>
+              <th>Sent settings</th>
+              <th>Received settings</th>
+              <th>Send window</th>
+              <th>Receive window</th>
+              <th>Unacked received data</th>
+              <th>Error</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr jsselect="spdySessionInfo">
+              <td><span jscontent="host_port_pair"></span>
+                <span jscontent="$this.aliases ? $this.aliases.join(&#39; &#39;) : &#39;&#39;"></span>
+              </td>
+              <td jscontent="proxy"></td>
+              <td><a jsvalues=".href: &#39;#events&amp;q=id:&#39; + source_id" jscontent="source_id"></a></td>
+              <td jscontent="protocol_negotiated"></td>
+              <td jscontent="active_streams"></td>
+              <td jscontent="unclaimed_pushed_streams"></td>
+              <td jscontent="max_concurrent_streams"></td>
+              <td jscontent="streams_initiated_count"></td>
+              <td jscontent="streams_pushed_count"></td>
+              <td jscontent="streams_pushed_and_claimed_count"></td>
+              <td jscontent="streams_abandoned_count"></td>
+              <td jscontent="frames_received"></td>
+              <td jscontent="is_secure"></td>
+              <td jscontent="sent_settings"></td>
+              <td jscontent="received_settings"></td>
+              <td jscontent="send_window_size"></td>
+              <td jscontent="recv_window_size"></td>
+              <td jscontent="unacked_recv_window_bytes"></td>
+              <td jscontent="error"></td>
+            </tr>
+          </tbody>
+        </table>
+      <p></p>
+    </div>
+  </div>
+</div>
+
+      <div id="quic-view-tab-content" class="content-box" style="display: none; position: absolute; left: 100px; top: 32px; width: 1260px; height: 700px;">
+  <ul style="margin-top:0">
+    <li>QUIC Enabled: <span jscontent="!!quic_enabled"></span></li>
+    <li>Origins To Force QUIC On: <span jscontent="origins_to_force_quic_on"></span></li>
+    <li>Connection options: <span jscontent="connection_options"></span></li>
+    <li>Consistent Port Selection Enabled: <span jscontent="!!enable_quic_port_selection"></span></li>
+    <li>Load Server Info Timeout Multiplier: <span jscontent="$this.load_server_info_timeout_srtt_multiplier"></span></li>
+    <li>Enable Connection Racing: <span jscontent="!!enable_connection_racing"></span></li>
+    <li>Disable Disk Cache: <span jscontent="!!disable_disk_cache"></span></li>
+    <li>Prefer AES: <span jscontent="!!prefer_aes"></span></li>
+    <li>Maximum Number Of Lossy Connections: <span jscontent="$this.max_number_of_lossy_connections"></span></li>
+    <li>Packet Loss Threshold: <span jscontent="$this.packet_loss_threshold"></span></li>
+    <li>Delay TCP Race: <span jscontent="!!delay_tcp_race"></span></li>
+    <li>Store Server Configs In Properties File: <span jscontent="!!store_server_configs_in_properties"></span></li>
+    <li>Idle Connection Timeout In Seconds: <span jscontent="$this.idle_connection_timeout_seconds"></span></li>
+    <li>Disable PreConnect If 0RTT: <span jscontent="$this.disable_preconnect_if_0rtt"></span></li>
+    <li>Disable QUIC On Timeout With Open Streams: <span jscontent="$this.disable_quic_on_timeout_with_open_streams"></span></li>
+    <li jsdisplay="$this.disabled_reason &amp;&amp; disabled_reason.length &gt; 0">QUIC dynamically disabled: <span jscontent="disabled_reason"></span></li>
+  </ul>
+
+  <h4>QUIC sessions</h4>
+    <!-- Only one of these two are shown -->
+    <div jsdisplay="!($this.sessions &amp;&amp; sessions.length &gt; 0)">None</div>
+    <div jsdisplay="$this.sessions &amp;&amp; sessions.length &gt; 0">
+      <a href="chrome://net-internals/#events&amp;q=type:QUIC_SESSION%20is:active">View live QUIC sessions</a>
+      <p>
+        </p><table class="styled-table">
+          <thead>
+            <tr>
+              <th>Host</th>
+              <th>Secure</th>
+              <th>Version</th>
+              <th>Peer address</th>
+              <th>Connection UID</th>
+              <th>Active stream count</th>
+              <th>Active streams</th>
+              <th>Total stream count</th>
+              <th>Packets Sent</th>
+              <th>Packets Lost</th>
+              <th>Packets Received</th>
+              <th>Connected</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr jsselect="sessions">
+              <td jscontent="$this.aliases ? $this.aliases.join(&#39; &#39;) : &#39;&#39;"></td>
+              <td jscontent="!!secure"></td>
+              <td jscontent="version"></td>
+              <td jscontent="peer_address"></td>
+              <td><a jsvalues=".href: &#39;#events&amp;q=type:QUIC_SESSION%20&#39; + connection_id" jscontent="connection_id"></a></td>
+              <td jscontent="open_streams"></td>
+              <td jscontent="$this.active_streams &amp;&amp; $this.active_streams.length &gt; 0 ? $this.active_streams.join(&#39;, &#39;) : &#39;None&#39;"></td>
+              <td jscontent="total_streams"></td>
+              <td jscontent="packets_sent"></td>
+              <td jscontent="packets_lost"></td>
+              <td jscontent="packets_received"></td>
+              <td jscontent="connected"></td>
+            </tr>
+          </tbody>
+        </table>
+      <p></p>
+    </div>
+</div>
+
+      <div id="http-cache-view-tab-content" class="content-box" style="display: none; position: absolute; left: 100px; top: 32px; width: 1260px; height: 700px;">
+  <div class="hide-when-not-capturing">
+    <a href="chrome://view-http-cache/" target="_blank">Explore cache entries</a>
+  </div>
+
+  <h4>Statistics</h4>
+  <div id="http-cache-view-cache-stats">Nothing loaded yet.</div>
+</div>
+
+      <!-- Bandwidth info -->
+<style>
+.data-reduction-proxy-view-events-details {
+  background-color: rgb(220,220,220);
+}
+table.borderless-table,
+.borderless-table th,
+.borderless-table td {
+  border: 0px;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+</style>
+<div id="bandwidth-view-tab-content" class="content-box" style="display: none; position: absolute; left: 100px; top: 32px; width: 1260px; height: 700px;">
+  <h2>Data Reduction Proxy Status</h2>
+  <ul id="data-reduction-proxy-view-status">
+    <li>Status: <span id="data-reduction-proxy-enabled"></span></li>
+    <li>Proxy configuration: <span id="data-reduction-proxy-config"></span></li>
+    <li>Probe status: <span id="data-reduction-proxy-probe-status"></span></li>
+    <li id="data-reduction-proxy-bypass-state-container">Bypass details:
+      <span id="data-reduction-proxy-bypass-state-details"></span></li>
+  </ul>
+  <a href="chrome://net-internals/#proxy">View current proxy configuration</a>
+
+  <h4>Recent events</h4>
+  <div id="data-reduction-proxy-view-events-content">
+    <table class="styled-table">
+      <thead>
+        <tr>
+          <th>Time</th>
+          <th>Action</th>
+        </tr>
+        <tr>
+          <th colspan="2">Details</th>
+        </tr>
+      </thead>
+      <tbody id="data-reduction-proxy-view-events-tbody">
+      </tbody>
+    </table>
+  </div>
+  <h4>Bandwidth Savings</h4>
+  <table class="styled-table" id="bandwidth-stats-table">
+    <thead>
+      <tr>
+        <th></th>
+        <th>Session</th>
+        <th>Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr jsselect="rows">
+        <td jscontent="title"></td>
+        <td jscontent="sessionValue"></td>
+        <td jscontent="historicValue"></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+      <style>
+
+#prerender-view-history-table tr.used {
+  background-color: #F0FFF0;
+}
+
+#prerender-view-history-table tr:not(.used) {
+  background-color: #FFF0F0;
+}
+
+</style>
+
+<div id="prerender-view-tab-content" class="content-box" style="display: none; position: absolute; left: 100px; top: 32px; width: 1260px; height: 700px;">
+  <ul style="margin-top:0">
+    <li>Prerender Enabled:
+      <span jscontent="enabled"></span>
+      <span jscontent="enabled_note"></span></li>
+    <li>Prerender Omnibox Enabled:
+      <span jscontent="omnibox_enabled"></span></li>
+  </ul>
+  <h4>Active Prerender Pages</h4>
+  <table class="styled-table">
+    <thead>
+      <tr>
+        <th>URL</th>
+        <th>Duration</th>
+        <th>Loaded</th>
+      </tr>
+    </thead>
+    <tbody id="prerender-view-active-table">
+      <tr jsselect="active">
+        <td jscontent="url"></td>
+        <td jscontent="duration"></td>
+        <td jscontent="is_loaded"></td>
+      </tr>
+    </tbody>
+  </table>
+  <h4>Prerender History</h4>
+  <table class="styled-table">
+    <thead>
+      <tr>
+        <th>Origin</th>
+        <th>URL</th>
+        <th>Final Status</th>
+        <th>Time</th>
+      </tr>
+    </thead>
+    <tbody id="prerender-view-history-table">
+      <tr jsselect="$this.history" jsvalues=".className: final_status.toLowerCase()">
+        <td jscontent="origin"></td>
+        <td jscontent="url"></td>
+        <td jscontent="final_status"></td>
+        <td jscontent="timeutil.dateToString(new Date(parseInt(end_time)))"></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+      <style>
+
+.modules-view-extension-list tr.enabled {
+  background-color: #F0FFF0;
+}
+
+.modules-view-extension-list tr:not(.enabled) {
+  background-color: #FFF0F0;
+}
+
+</style>
+
+<div id="modules-view-tab-content" class="content-box" style="display: none; position: absolute; left: 100px; top: 32px; width: 1260px; height: 700px;">
+  <h4 style="margin-top:0">Chrome Extensions</h4>
+  <div id="modules-view-extension-info">
+    <div jsdisplay="typeof extensionInfo == &#39;undefined&#39;">No information</div>
+    <div jsdisplay="typeof extensionInfo != &#39;undefined&#39; &amp;&amp; extensionInfo.length == 0">None</div>
+    <div jsdisplay="typeof extensionInfo != &#39;undefined&#39; &amp;&amp; extensionInfo.length != 0">
+      <table class="styled-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>App</th>
+            <th>Enabled</th>
+            <th>Name</th>
+            <th>Version</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody class="modules-view-extension-list">
+          <tr jsselect="extensionInfo" jsvalues=".className: enabled ? &#39;enabled&#39; : &#39;&#39;">
+            <td jscontent="id"></td>
+            <td jscontent="packagedApp"></td>
+            <td jscontent="enabled"></td>
+            <td jscontent="name"></td>
+            <td jscontent="version"></td>
+            <td jscontent="description"></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Only shown for Windows log dumps -->
+  <div id="modules-view-windows-service-providers" style="display: none;" jsdisplay="typeof $this != &#39;undefined&#39;">
+    <h4>Layered Service Providers</h4>
+    <table class="styled-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Version</th>
+          <th>Type</th>
+          <th>Socket Type</th>
+          <th>Protocol</th>
+          <th>Path</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr jsselect="service_providers">
+          <td jscontent="name"></td>
+          <td jscontent="version"></td>
+          <td jscontent="ModulesView.getLayeredServiceProviderType($this)"></td>
+          <td jscontent="ModulesView.getLayeredServiceProviderSocketType($this)"></td>
+          <td jscontent="ModulesView.getLayeredServiceProviderProtocolType($this)"></td>
+          <td jscontent="path"></td>
+        </tr>
+      </tbody>
+    </table>
+    <h4>Namespace Providers</h4>
+    <table class="styled-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Version</th>
+          <th>Namespace</th>
+          <th>Active</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr jsselect="namespace_providers">
+          <td jscontent="name"></td>
+          <td jscontent="version"></td>
+          <td jscontent="ModulesView.getNamespaceProviderType($this)"></td>
+          <td jscontent="active"></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+      <style>
+#import-view-command-line,
+#import-view-user-comments {
+  /* Wrap long lines inside of PREs */
+  white-space: pre-wrap;
+}
+
+#import-view-load-status-text {
+  /* Wrap long lines inside of PREs */
+  white-space: pre-wrap;
+}
+
+.import-view-pending-log {
+  color: blue;
+  font-weight: bold;
+}
+
+.import-view-success-log {
+  color: green;
+  font-weight: bold;
+}
+
+.import-view-error-log {
+  color: #e00;
+  padding: 5px;
+  border: 1px solid #e00;
+}
+
+.import-view-warning-log {
+  color: #e00;
+}
+
+</style>
+
+<div id="import-view-tab-content" class="content-box" style="display: none; position: absolute; left: 100px; top: 32px; width: 1260px; height: 700px;">
+  <div>
+    <div style="margin-bottom:20px"><b>TIP</b>: Drag-and-drop files into this window.</div>
+    <input type="file" value="Load log from file" id="import-view-load-log-file">
+    <pre id="import-view-load-status-text"></pre>
+  </div>
+
+  <div id="import-view-loaded-div" style="display: none">
+    <h2>Data Loaded</h2>
+    <table class="styled-table">
+    <tbody><tr>
+      <th>Export date</th>
+      <td jscontent="timeutil.dateToString(new Date(constants.clientInfo.numericDate))"></td>
+    </tr>
+    <tr>
+      <th>Build</th>
+      <td><span jscontent="constants.clientInfo.name"></span>
+        <span jscontent="constants.clientInfo.version"></span>
+        (<span jscontent="constants.clientInfo.official"></span>
+          <span jscontent="constants.clientInfo.cl"></span>)
+        <span jscontent="constants.clientInfo.version_mod">
+      </span></td>
+    </tr>
+    <tr>
+      <th>OS info</th>
+      <td jscontent="constants.clientInfo.os_type"></td>
+    </tr>
+    <tr>
+      <th>Command line</th>
+      <td><pre jscontent="constants.clientInfo.command_line"></pre></td>
+    </tr>
+    <tr>
+      <th>Active Field Trial Groups</th>
+      <td>
+        <span jsselect="constants.activeFieldTrialGroups" jscontent="$this + &#39; &#39;"></span>
+      </td>
+    </tr>
+    <tr>
+      <th>User comments</th>
+      <td>
+        <pre id="import-view-user-comments" jscontent="userComments" jsdisplay="typeof userComments != &#39;undefined&#39;"></pre>
+      </td>
+    </tr>
+    </tbody></table>
+  </div>
+</div>
+
+      <style>
+
+.export-view-explanation-warning {
+  border: 2px solid #e00;
+}
+
+#export-view-privacy-warning {
+  padding: 5px;
+  color: #e00;
+  border: 1px solid #e00;
+}
+
+#export-view-save-log-file {
+  font-size: 100%;
+  font-weight: bold;
+}
+
+#export-view-user-comments {
+  max-width: 100%;
+}
+
+</style>
+
+<div id="export-view-tab-content" class="content-box" style="display: none; position: absolute; left: 100px; top: 32px; width: 1260px; height: 700px;">
+  <div>
+    <input id="export-view-privacy-stripping-checkbox" type="checkbox" checked="yes">
+    <label for="export-view-privacy-stripping-checkbox">
+      Strip private information (cookies and credentials).
+    </label>
+    <div id="export-view-privacy-warning" style="display:none">
+      <b>WARNING</b>: Events were captured while full byte logging was enabled.
+      This means the dump may contain private information.
+    </div>
+
+    <div style="margin-top:10px; margin-bottom: 5px">
+      <textarea cols="50" rows="5" placeholder="Explain what went wrong here. (These notes will be included in the dump file. Be sure to mention the specific URLs, so investigators know what to look for!)" id="export-view-user-comments"></textarea>
+    </div>
+    <button id="export-view-save-log-file">Save to file</button>
+
+    <pre id="export-view-save-status-text"></pre>
+
+    <div style="margin-top: 10px; margin-left: 10px;">
+      <a href="https://sites.google.com/a/chromium.org/dev/for-testers/providing-network-details" target="_blank">
+        How to provide data for bug reports
+      </a>
+    </div>
+
+  </div>
+
+  <a style="display: none" id="export-view-download-anchor" download="net-internals-log.json"></a>
+
+</div>
+
+      <div id="capture-view-tab-content" class="content-box" style="display: none; position: absolute; left: 100px; top: 32px; width: 1260px; height: 700px;">
+  <div>
+    <input id="capture-view-limit-checkbox" type="checkbox">
+    <label for="capture-view-limit-checkbox">
+      Discard old data under memory pressure.
+    </label>
+    <span id="capture-view-limit-help-hover" class="mouse-over-help-hover">(?)</span>
+    <!-- Inline filter help -->
+    <div id="capture-view-limit-help" class="mouse-over-help" style="display: none;">
+      If you capture all events for a long time, it is possible to exhaust memory
+      and crash. Throwing out older data avoids this problem.
+    </div>
+  </div>
+
+  <div>
+    <input id="capture-view-byte-logging-checkbox" type="checkbox">
+    <label for="capture-view-byte-logging-checkbox">
+      Include the actual bytes sent/received.
+    </label>
+    <span id="capture-view-byte-logging-help-hover" class="mouse-over-help-hover">(?)</span>
+    <div id="capture-view-byte-logging-help" class="mouse-over-help" style="display: none;">
+      This will result in huge log files, and can expose sensitive data.
+    </div>
+  </div>
+
+  <div style="margin-top: 20px">
+    <button id="capture-view-stop-button">Stop</button>
+    <button id="capture-view-reset-button">Reset</button>
+  </div>
+
+</div>
+
+      <style>
+  #hsts-view-tab-content tt {
+    word-wrap: break-word;
+  }
+</style>
+  
+<!-- HSTS tab -->
+<div id="hsts-view-tab-content" class="content-box" style="display: none; position: absolute; left: 100px; top: 32px; width: 1260px; height: 700px;">
+  <div class="deindent-header">
+    HSTS is HTTP Strict Transport Security: a way for sites to elect to
+    always use HTTPS. See <a href="https://www.chromium.org/hsts" target="_blank">
+    https://www.chromium.org/hsts</a>.</div>
+
+    <!-- This UI allows a user to query and update the browser's list of
+         HSTS domains. -->
+
+  <h4>Add domain</h4>
+
+  <p>Input a domain name to add it to the HSTS set:</p>
+  <form id="hsts-view-add-form">
+    Domain: <input type="text" id="hsts-view-add-input" placeholder="example.com"><br>
+    <label>Include subdomains for STS: <input type="checkbox" id="hsts-view-check-sts-input"></label><br>
+    <label>Include subdomains for PKP: <input type="checkbox" id="hsts-view-check-pkp-input"></label><br>
+    <label>Public key fingerprints: <input type="text" id="hsts-view-add-pins" style="width: 25em; max-width: 100%;"></label><br>
+    <p style="font-size: small; color: #767676; font-style: italic; margin-left: 2em; max-width: 40em; max-width: 100%;">(public key fingerprints are comma separated and consist of the hash function followed by a foreslash and the base64 encoded fingerprint, for example <tt>sha256/7HIpactkIAq2Y49orFOOQKurWxmmSFZhBCoQYcRhJ3Y=</tt>)</p>
+    <input type="submit" value="Add" id="hsts-view-add-submit">
+  </form>
+
+  <h4>Delete domain</h4>
+
+  <p>
+    Input a domain name to delete it from the HSTS set
+    (<i>you cannot delete preloaded entries</i>):
+  </p>
+  <form id="hsts-view-delete-form">
+    Domain: <input type="text" id="hsts-view-delete-input" placeholder="example.com">
+    <input type="submit" value="Delete" id="hsts-view-delete-submit">
+  </form>
+
+  <h4>Query domain</h4>
+
+  <p>Input a domain name to query the current HSTS set:</p>
+  <form id="hsts-view-query-form">
+    Domain: <input type="text" id="hsts-view-query-input" placeholder="example.com">
+    <input type="submit" value="Query" id="hsts-view-query-submit">
+  </form>
+  <div style="margin-top: 1em; margin-left: 2em;" id="hsts-view-query-output"></div>
+</div>
+
+      <!-- ================= Events view =================== -->
+
+<!-- Filter Box: This the top bar which contains the search box.  -->
+<div id="events-view-filter-box" style="display: none; position: absolute; left: 100px; top: 32px; width: 630px; height: 36px;">
+  <table width="100%">
+    <tbody><tr>
+      <td width="1%">
+        <span id="events-view-filter-help-hover" class="mouse-over-help-hover">(?)</span>
+      </td>
+      <td width="98%"><input type="search" incremental="" id="events-view-filter-input" title="Sort and filter"></td>
+      <td width="1%" id="events-view-filter-count">65 of 65</td>
+    </tr>
+  </tbody></table>
+</div>
+<!-- Inline filter help -->
+<div id="events-view-filter-help" class="mouse-over-help" style="display: none;">
+  Sort options:
+  <ul>
+    <li>sort:id (default)
+    </li><li>sort:desc
+    </li><li>sort:duration
+    </li><li>sort:type
+    </li><li>-sort:&lt;option&gt; Reverses sort order
+  </li></ul>
+
+  Additional filters:
+  <ul>
+    <li>id:#[,#]*
+    </li><li>type:&lt;type&gt;[,&lt;type&gt;]*
+    </li><li>is:active
+    </li><li>is:error
+    </li><li>-&lt;filter&gt; Inverts a filter.
+  </li></ul>
+</div>
+<!-- Events Box: This the panel on the left which lists the sources -->
+<div id="events-view-source-list" style="display: none; position: absolute; left: 100px; top: 68px; width: 630px; height: 664px;">
+  <table id="events-view-source-list-table" cellspacing="0" cellpadding="0" width="100%">
+    <thead>
+      <tr>
+        <td style="border-left:0"><input type="checkbox" id="events-view-select-all" title="Select all"></td>
+        <td id="events-view-sort-by-id">ID</td>
+        <td id="events-view-sort-by-source">Source Type</td>
+        <td id="events-view-sort-by-description" width="99%">Description</td>
+      </tr>
+    </thead>
+    <!-- Events table body: This is where request rows go into -->
+    <tbody id="events-view-source-list-tbody"><tr class="source-proxy-client-socket-wrapper inactive"><td style="border-left: 0px;"><input title="256886" type="checkbox"></td><td style="text-align: right;">256886</td><td>PROXY_CLIENT_SOCKET_WRAPPER</td><td></td></tr><tr class="source-socket inactive"><td style="border-left: 0px;"><input title="256888" type="checkbox"></td><td style="text-align: right;">256888</td><td>SOCKET</td><td></td></tr><tr class="source-proxy-client-socket-wrapper inactive"><td style="border-left: 0px;"><input title="256896" type="checkbox"></td><td style="text-align: right;">256896</td><td>PROXY_CLIENT_SOCKET_WRAPPER</td><td></td></tr><tr class="source-socket inactive"><td style="border-left: 0px;"><input title="256898" type="checkbox"></td><td style="text-align: right;">256898</td><td>SOCKET</td><td></td></tr><tr class="source-proxy-client-socket-wrapper inactive"><td style="border-left: 0px;"><input title="256901" type="checkbox"></td><td style="text-align: right;">256901</td><td>PROXY_CLIENT_SOCKET_WRAPPER</td><td></td></tr><tr class="source-socket inactive"><td style="border-left: 0px;"><input title="256903" type="checkbox"></td><td style="text-align: right;">256903</td><td>SOCKET</td><td></td></tr><tr class="source-proxy-client-socket-wrapper inactive"><td style="border-left: 0px;"><input title="256907" type="checkbox"></td><td style="text-align: right;">256907</td><td>PROXY_CLIENT_SOCKET_WRAPPER</td><td></td></tr><tr class="source-socket inactive"><td style="border-left: 0px;"><input title="256909" type="checkbox"></td><td style="text-align: right;">256909</td><td>SOCKET</td><td></td></tr><tr class="source-proxy-client-socket-wrapper inactive"><td style="border-left: 0px;"><input title="256912" type="checkbox"></td><td style="text-align: right;">256912</td><td>PROXY_CLIENT_SOCKET_WRAPPER</td><td></td></tr><tr class="source-socket inactive"><td style="border-left: 0px;"><input title="256914" type="checkbox"></td><td style="text-align: right;">256914</td><td>SOCKET</td><td></td></tr><tr class="source-proxy-client-socket-wrapper inactive"><td style="border-left: 0px;"><input title="256922" type="checkbox"></td><td style="text-align: right;">256922</td><td>PROXY_CLIENT_SOCKET_WRAPPER</td><td></td></tr><tr class="source-socket inactive"><td style="border-left: 0px;"><input title="256924" type="checkbox"></td><td style="text-align: right;">256924</td><td>SOCKET</td><td></td></tr><tr class="source-proxy-client-socket-wrapper inactive"><td style="border-left: 0px;"><input title="256927" type="checkbox"></td><td style="text-align: right;">256927</td><td>PROXY_CLIENT_SOCKET_WRAPPER</td><td></td></tr><tr class="source-socket inactive"><td style="border-left: 0px;"><input title="256929" type="checkbox"></td><td style="text-align: right;">256929</td><td>SOCKET</td><td></td></tr><tr class="source-proxy-client-socket-wrapper inactive"><td style="border-left: 0px;"><input title="256932" type="checkbox"></td><td style="text-align: right;">256932</td><td>PROXY_CLIENT_SOCKET_WRAPPER</td><td></td></tr><tr class="source-socket inactive"><td style="border-left: 0px;"><input title="256934" type="checkbox"></td><td style="text-align: right;">256934</td><td>SOCKET</td><td></td></tr><tr class="source-proxy-client-socket-wrapper inactive"><td style="border-left: 0px;"><input title="256938" type="checkbox"></td><td style="text-align: right;">256938</td><td>PROXY_CLIENT_SOCKET_WRAPPER</td><td></td></tr><tr class="source-socket inactive"><td style="border-left: 0px;"><input title="256940" type="checkbox"></td><td style="text-align: right;">256940</td><td>SOCKET</td><td></td></tr><tr class="source-proxy-client-socket-wrapper inactive"><td style="border-left: 0px;"><input title="256943" type="checkbox"></td><td style="text-align: right;">256943</td><td>PROXY_CLIENT_SOCKET_WRAPPER</td><td></td></tr><tr class="source-socket inactive"><td style="border-left: 0px;"><input title="256945" type="checkbox"></td><td style="text-align: right;">256945</td><td>SOCKET</td><td></td></tr><tr class="source-proxy-client-socket-wrapper inactive"><td style="border-left: 0px;"><input title="256948" type="checkbox"></td><td style="text-align: right;">256948</td><td>PROXY_CLIENT_SOCKET_WRAPPER</td><td></td></tr><tr class="source-socket inactive"><td style="border-left: 0px;"><input title="256950" type="checkbox"></td><td style="text-align: right;">256950</td><td>SOCKET</td><td></td></tr><tr class="source-proxy-client-socket-wrapper inactive"><td style="border-left: 0px;"><input title="256954" type="checkbox"></td><td style="text-align: right;">256954</td><td>PROXY_CLIENT_SOCKET_WRAPPER</td><td></td></tr><tr class="source-socket inactive"><td style="border-left: 0px;"><input title="256956" type="checkbox"></td><td style="text-align: right;">256956</td><td>SOCKET</td><td></td></tr><tr class="source-proxy-client-socket-wrapper inactive"><td style="border-left: 0px;"><input title="256959" type="checkbox"></td><td style="text-align: right;">256959</td><td>PROXY_CLIENT_SOCKET_WRAPPER</td><td></td></tr><tr class="source-socket inactive"><td style="border-left: 0px;"><input title="256961" type="checkbox"></td><td style="text-align: right;">256961</td><td>SOCKET</td><td></td></tr><tr class="source-proxy-client-socket-wrapper inactive"><td style="border-left: 0px;"><input title="256964" type="checkbox"></td><td style="text-align: right;">256964</td><td>PROXY_CLIENT_SOCKET_WRAPPER</td><td></td></tr><tr class="source-socket inactive"><td style="border-left: 0px;"><input title="256966" type="checkbox"></td><td style="text-align: right;">256966</td><td>SOCKET</td><td></td></tr><tr class="source-proxy-client-socket-wrapper inactive"><td style="border-left: 0px;"><input title="256976" type="checkbox"></td><td style="text-align: right;">256976</td><td>PROXY_CLIENT_SOCKET_WRAPPER</td><td></td></tr><tr class="source-socket inactive"><td style="border-left: 0px;"><input title="256978" type="checkbox"></td><td style="text-align: right;">256978</td><td>SOCKET</td><td></td></tr><tr class="source-proxy-client-socket-wrapper inactive"><td style="border-left: 0px;"><input title="256980" type="checkbox"></td><td style="text-align: right;">256980</td><td>PROXY_CLIENT_SOCKET_WRAPPER</td><td></td></tr><tr class="source-socket inactive"><td style="border-left: 0px;"><input title="256982" type="checkbox"></td><td style="text-align: right;">256982</td><td>SOCKET</td><td></td></tr><tr class="source-proxy-client-socket-wrapper inactive"><td style="border-left: 0px;"><input title="256984" type="checkbox"></td><td style="text-align: right;">256984</td><td>PROXY_CLIENT_SOCKET_WRAPPER</td><td></td></tr><tr class="source-socket inactive"><td style="border-left: 0px;"><input title="256986" type="checkbox"></td><td style="text-align: right;">256986</td><td>SOCKET</td><td></td></tr><tr class="source-proxy-client-socket-wrapper inactive"><td style="border-left: 0px;"><input title="256988" type="checkbox"></td><td style="text-align: right;">256988</td><td>PROXY_CLIENT_SOCKET_WRAPPER</td><td></td></tr><tr class="source-socket inactive"><td style="border-left: 0px;"><input title="256990" type="checkbox"></td><td style="text-align: right;">256990</td><td>SOCKET</td><td></td></tr><tr class="source-proxy-client-socket-wrapper inactive"><td style="border-left: 0px;"><input title="256992" type="checkbox"></td><td style="text-align: right;">256992</td><td>PROXY_CLIENT_SOCKET_WRAPPER</td><td></td></tr><tr class="source-socket inactive"><td style="border-left: 0px;"><input title="256994" type="checkbox"></td><td style="text-align: right;">256994</td><td>SOCKET</td><td></td></tr><tr class="source-proxy-client-socket-wrapper inactive"><td style="border-left: 0px;"><input title="256996" type="checkbox"></td><td style="text-align: right;">256996</td><td>PROXY_CLIENT_SOCKET_WRAPPER</td><td></td></tr><tr class="source-socket inactive"><td style="border-left: 0px;"><input title="256998" type="checkbox"></td><td style="text-align: right;">256998</td><td>SOCKET</td><td></td></tr><tr class="source-proxy-client-socket-wrapper inactive"><td style="border-left: 0px;"><input title="257000" type="checkbox"></td><td style="text-align: right;">257000</td><td>PROXY_CLIENT_SOCKET_WRAPPER</td><td></td></tr><tr class="source-socket inactive"><td style="border-left: 0px;"><input title="257002" type="checkbox"></td><td style="text-align: right;">257002</td><td>SOCKET</td><td></td></tr><tr class="source-proxy-client-socket-wrapper inactive"><td style="border-left: 0px;"><input title="257138" type="checkbox"></td><td style="text-align: right;">257138</td><td>PROXY_CLIENT_SOCKET_WRAPPER</td><td></td></tr><tr class="source-socket inactive"><td style="border-left: 0px;"><input title="257140" type="checkbox"></td><td style="text-align: right;">257140</td><td>SOCKET</td><td></td></tr><tr class="source-proxy-client-socket-wrapper inactive"><td style="border-left: 0px;"><input title="257157" type="checkbox"></td><td style="text-align: right;">257157</td><td>PROXY_CLIENT_SOCKET_WRAPPER</td><td></td></tr><tr class="source-socket inactive"><td style="border-left: 0px;"><input title="257159" type="checkbox"></td><td style="text-align: right;">257159</td><td>SOCKET</td><td></td></tr><tr class="source-proxy-client-socket-wrapper inactive"><td style="border-left: 0px;"><input title="257166" type="checkbox"></td><td style="text-align: right;">257166</td><td>PROXY_CLIENT_SOCKET_WRAPPER</td><td></td></tr><tr class="source-socket inactive"><td style="border-left: 0px;"><input title="257168" type="checkbox"></td><td style="text-align: right;">257168</td><td>SOCKET</td><td></td></tr><tr class="source-udp-socket inactive"><td style="border-left: 0px;"><input title="257174" type="checkbox"></td><td style="text-align: right;">257174</td><td>UDP_SOCKET</td><td>54.172.47.69:3478</td></tr><tr class="source-udp-socket inactive"><td style="border-left: 0px;"><input title="257176" type="checkbox"></td><td style="text-align: right;">257176</td><td>UDP_SOCKET</td><td>54.172.47.69:3478</td></tr><tr class="source-udp-socket inactive"><td style="border-left: 0px;"><input title="257185" type="checkbox"></td><td style="text-align: right;">257185</td><td>UDP_SOCKET</td><td>54.172.47.69:3478</td></tr><tr class="source-udp-socket inactive"><td style="border-left: 0px;"><input title="257187" type="checkbox"></td><td style="text-align: right;">257187</td><td>UDP_SOCKET</td><td>54.172.47.69:3478</td></tr><tr class="source-proxy-client-socket-wrapper inactive"><td style="border-left: 0px;"><input title="257214" type="checkbox"></td><td style="text-align: right;">257214</td><td>PROXY_CLIENT_SOCKET_WRAPPER</td><td></td></tr><tr class="source-socket inactive"><td style="border-left: 0px;"><input title="257216" type="checkbox"></td><td style="text-align: right;">257216</td><td>SOCKET</td><td></td></tr><tr class="source-proxy-client-socket-wrapper inactive"><td style="border-left: 0px;"><input title="257219" type="checkbox"></td><td style="text-align: right;">257219</td><td>PROXY_CLIENT_SOCKET_WRAPPER</td><td></td></tr><tr class="source-socket inactive"><td style="border-left: 0px;"><input title="257221" type="checkbox"></td><td style="text-align: right;">257221</td><td>SOCKET</td><td></td></tr><tr class="source-proxy-client-socket-wrapper inactive"><td style="border-left: 0px;"><input title="257227" type="checkbox"></td><td style="text-align: right;">257227</td><td>PROXY_CLIENT_SOCKET_WRAPPER</td><td></td></tr><tr class="source-socket inactive"><td style="border-left: 0px;"><input title="257229" type="checkbox"></td><td style="text-align: right;">257229</td><td>SOCKET</td><td></td></tr><tr class="source-udp-socket inactive"><td style="border-left: 0px;"><input title="257289" type="checkbox"></td><td style="text-align: right;">257289</td><td>UDP_SOCKET</td><td>54.172.47.69:3478</td></tr><tr class="source-udp-socket inactive"><td style="border-left: 0px;"><input title="257291" type="checkbox"></td><td style="text-align: right;">257291</td><td>UDP_SOCKET</td><td>54.172.47.69:3478</td></tr><tr class="source-udp-socket inactive"><td style="border-left: 0px;"><input title="257293" type="checkbox"></td><td style="text-align: right;">257293</td><td>UDP_SOCKET</td><td>54.172.47.69:3478</td></tr><tr class="source-proxy-client-socket-wrapper inactive"><td style="border-left: 0px;"><input title="257304" type="checkbox"></td><td style="text-align: right;">257304</td><td>PROXY_CLIENT_SOCKET_WRAPPER</td><td></td></tr><tr class="source-socket inactive"><td style="border-left: 0px;"><input title="257306" type="checkbox"></td><td style="text-align: right;">257306</td><td>SOCKET</td><td></td></tr><tr class="source-proxy-client-socket-wrapper inactive"><td style="border-left: 0px;"><input title="257322" type="checkbox"></td><td style="text-align: right;">257322</td><td>PROXY_CLIENT_SOCKET_WRAPPER</td><td></td></tr><tr class="source-socket inactive"><td style="border-left: 0px;"><input title="257324" type="checkbox"></td><td style="text-align: right;">257324</td><td>SOCKET</td><td></td></tr><tr class="source-download"><td style="border-left: 0px;"><input title="257382" type="checkbox"></td><td style="text-align: right;">257382</td><td>DOWNLOAD</td><td></td></tr><tr class="source-url-request"><td style="border-left: 0px;"><input title="257383" type="checkbox"></td><td style="text-align: right;">257383</td><td>URL_REQUEST</td><td>https://clients4.google.com/chrome-sync/command/?client=Google+Chrome&amp;client_id=%2B3cb%2BndVjAfDAsCMRu3kwA%3D%3D</td></tr><tr class="source-http-stream-job error"><td style="border-left: 0px;"><input title="257384" type="checkbox"></td><td style="text-align: right;">257384</td><td>HTTP_STREAM_JOB</td><td>https://clients4.google.com/</td></tr><tr class="source-udp-socket error"><td style="border-left: 0px;"><input title="257385" type="checkbox"></td><td style="text-align: right;">257385</td><td>UDP_SOCKET</td><td>[2001:4860:4860::8888]:53</td></tr><tr class="source-connect-job"><td style="border-left: 0px;"><input title="257386" type="checkbox"></td><td style="text-align: right;">257386</td><td>CONNECT_JOB</td><td>pm/ssl/clients4.google.com:443</td></tr><tr class="source-connect-job"><td style="border-left: 0px;"><input title="257387" type="checkbox"></td><td style="text-align: right;">257387</td><td>CONNECT_JOB</td><td>pm/ssl/clients4.google.com:443</td></tr><tr class="source-proxy-client-socket-wrapper"><td style="border-left: 0px;"><input title="257388" type="checkbox"></td><td style="text-align: right;">257388</td><td>PROXY_CLIENT_SOCKET_WRAPPER</td><td></td></tr><tr class="source-connect-job error"><td style="border-left: 0px;"><input title="257389" type="checkbox"></td><td style="text-align: right;">257389</td><td>CONNECT_JOB</td><td>pm/ssl/clients4.google.com:443</td></tr><tr class="source-socket"><td style="border-left: 0px;"><input title="257390" type="checkbox"></td><td style="text-align: right;">257390</td><td>SOCKET</td><td>pm/ssl/clients4.google.com:443</td></tr></tbody>
+  </table>
+</div>
+<!-- Splitter Box: This is a handle to resize the vertical divider -->
+<div id="events-view-splitter-box" class="vertical-splitter" style="display: none; position: absolute; left: 730px; top: 32px; width: 10px; height: 700px;"></div>
+<!-- Details box: This is the panel on the right which shows information -->
+<div id="events-view-details-log-box" class="event-log content-box" style="display: none; position: absolute; left: 740px; top: 32px; width: 620px; height: 700px;"></div>
+
+      <div id="timeline-view-selection-div" style="display: none; position: absolute; left: 100px; top: 32px; width: 178px; height: 700px;">
+  <div style="text-align: right">
+    <button id="timeline-view-selection-toggle" title="Toggle visibility of selection view" class="timeline-view-rotateleft"></button>
+  </div>
+<ul id="timeline-view-selection-ul">
+  <li id="timeline-view-open-sockets"><label><input type="checkbox" checked="">
+    █ <span class="timeline-view-text">Open sockets</span></label>
+  </li>
+  <li id="timeline-view-in-use-sockets"><label><input type="checkbox" checked="">
+    █ <span class="timeline-view-text">In use sockets</span></label>
+  </li>
+  <li id="timeline-view-url-requests"><label><input type="checkbox" checked="">
+    █ <span class="timeline-view-text">URL requests</span></label>
+  </li>
+  <li id="timeline-view-dns-jobs"><label><input type="checkbox" checked="">
+    █ <span class="timeline-view-text">DNS jobs</span></label>
+  </li>
+  <li id="timeline-view-bytes-received"><label><input type="checkbox" checked="">
+    █ <span class="timeline-view-text">Bytes received</span></label>
+  </li>
+  <li id="timeline-view-bytes-sent"><label><input type="checkbox" checked="">
+    █ <span class="timeline-view-text">Bytes sent</span></label>
+  </li>
+  <li id="timeline-view-disk-cache-bytes-read"><label><input type="checkbox" checked="">
+    █ <span class="timeline-view-text">Disk cache bytes read</span></label>
+  </li>
+  <li id="timeline-view-disk-cache-bytes-written" class="timeline-view-hidden"><label><input type="checkbox">
+    █ <span class="timeline-view-text">Disk cache bytes written</span></label>
+  </li>
+</ul>
+</div>
+<div id="timeline-view-graph-div" style="display: none; position: absolute; left: 278px; top: 32px; width: 1082px; height: 699px;">
+  <canvas id="timeline-view-graph-canvas" width="1062" height="684">
+  </canvas>
+</div>
+<div id="timeline-view-scrollbar-div" style="display: none; position: absolute; left: 278px; top: 731px; width: 1082px; height: 1px;">
+  <div id="timeline-view-scrollbar-inner-div" style="width: 1082px;">
+  </div>
+</div>
+
+      <div id="sdch-view-tab-content" class="content-box" style="display: none; position: absolute; left: 100px; top: 32px; width: 1260px; height: 700px;">
+  <ul style="margin-top:0">
+    <li>SDCH Enabled:
+      <span jscontent="!!sdch_enabled" id="sdch-view-sdch-enabled"></span>
+    </li>
+  </ul>
+
+  <p>SDCH Errors:
+    <a href="chrome://net-internals/#events&amp;q=type:URL_REQUEST%20SDCH_DECODING_ERROR" style="padding-right:2em">Decoding</a>
+    <a href="chrome://net-internals/#events&amp;q=type:URL_REQUEST%20SDCH_DICTIONARY_ERROR">Dictionary</a>
+  </p>
+
+  <p>
+    <a href="chrome://net-internals/#events&amp;q=type:URL_REQUEST%20SDCH_DICTIONARY_FETCH">
+      SDCH Dictionary Fetches
+    </a>
+  </p>
+
+  <p>
+    <a href="chrome://net-internals/#events&amp;q=type:URL_REQUEST%20Avail-Dictionary">
+      SDCH Requests
+    </a>
+  </p>
+
+  <h4>
+    Dictionaries loaded: <span jscontent="dictionaries.length"></span>
+  </h4>
+  <table class="styled-table">
+    <thead>
+      <tr>
+        <th>Domain</th>
+        <th>Path</th>
+        <th>Ports</th>
+        <th>Server Hash</th>
+        <th>Client Hash</th>
+        <th>Url</th>
+      </tr>
+    </thead>
+    <tbody id="sdch-view-dictionaries-body">
+      <tr jsselect="dictionaries">
+        <td jscontent="domain"></td>
+        <td jscontent="path"></td>
+        <td jscontent="$this.ports ? $this.ports.join(&#39;, &#39;) : &#39;&#39;"></td>
+        <td jscontent="server_hash"></td>
+        <td jscontent="client_hash"></td>
+        <td jscontent="url"></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h4>Blacklisted domains</h4>
+  <table class="styled-table">
+    <thead>
+      <tr>
+        <th>Domain</th>
+        <th>Reason</th>
+        <th>Tries to back off</th>
+      </tr>
+    </thead>
+    <tbody id="sdch-view-blacklist-body">
+      <tr jsselect="blacklisted">
+        <td jscontent="domain"></td>
+        <td jscontent="sdchProblemCodeToString(reason)"></td>
+        <td jscontent="tries"></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+      <div id="chromeos-view-tab-content" class="content-box" style="display: none; position: absolute; left: 100px; top: 32px; width: 1260px; height: 700px;">
+  <h4 style="margin-top:0">Import ONC file</h4>
+  <div id="chromeos-view-import-div">
+    <label>Import ONC File
+      <input type="file" id="chromeos-view-import-onc">
+    </label>
+  </div>
+  <div id="chromeos-view-password-div" hidden="">
+    This onc file appears to be encrypted.  Please provide the decryption key:
+    <div>
+      <input type="password" id="chromeos-view-onc-password">
+    </div>
+  </div>
+  <div id="chromeos-view-parse-status" hidden="">
+  </div>
+  <div id="chromeos-view-store-debug-logs-div">
+    <h4>Store Logs</h4>
+    <input type="button" id="chromeos-view-store-debug-logs" value="Store Debug Logs">
+    <label for="chromeos-view-store-debug-logs" id="chromeos-view-store-debug-logs-status">
+    </label>
+  </div>
+  <div id="chromeos-view-network-debugging-div">
+    <h4>Network Debugging</h4>
+    <dl>
+      <dt>Select interface for debugging</dt>
+      <dd>
+        <input type="button" value="Wi-Fi" id="chromeos-view-network-debugging-wifi">
+        <input type="button" value="Ethernet" id="chromeos-view-network-debugging-ethernet">
+        <input type="button" value="Cellular" id="chromeos-view-network-debugging-cellular">
+        <input type="button" value="WiMAX" id="chromeos-view-network-debugging-wimax">
+        <input type="button" name="subsystem" value="None" id="chromeos-view-network-debugging-none">
+      </dd>
+    </dl>
+    <label id="chromeos-view-network-debugging-status">
+    </label>
+  </div>
+</div>
+
+    </div>
+
+    <script src="chrome://resources/js/i18n_template.js"></script>
+    <script src="chrome://resources/js/jstemplate_compiled.js"></script>
+  
+
+</body></html>

@@ -1,0 +1,24 @@
+{
+  "root": ".",
+  "mappingDirname": {
+    "Note-Book": "笔记本",
+    "Daily": "日志",
+    "weekly": "周结",
+    "project-doc": "项目笔记"
+  },
+  "path": [
+    {
+      "include": ["./Daily/*"],
+      "exclude": ["!./**/img"]
+    },
+    {
+      "include": ["./Note-Book/*"],
+      "exclude": ["!./**/img"]
+    },
+
+    {
+      "include": ["./project-doc/*"],
+      "exclude": ["!./**/img"]
+    }
+  ]
+}

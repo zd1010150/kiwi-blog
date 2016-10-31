@@ -1,0 +1,23 @@
+{
+  "name": "kiwi-blog",
+  "version": "1.0.0",
+  "description": "",
+  "main": "gitbook-summary-produce.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "http://gitlab.alibaba-inc.com/kiwizhang.zd/kiwi-blog.git"
+  },
+  "keywords": [
+    "kiwi-blog"
+  ],
+  "author": "kiwizhang.zd",
+  "license": "ISC",
+  "dependencies": {
+    "glob": "^6.0.4",
+    "globule": "^0.2.0",
+    "iconv-lite": "^0.4.13"
+  }
+}

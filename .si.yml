@@ -1,0 +1,7 @@
+before_deploy:
+  - gitbook build . _book
+options:
+  dist: '_book'
+
+
+  
